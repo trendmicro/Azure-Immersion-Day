@@ -1,0 +1,450 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "StorageAccountName": {
+        "type": "string",
+        "defaultValue": "[concat('aiwdemo',substring(uniqueString(resourceGroup().id),0,6))]",
+        "metadata": {
+          "description": "The blob is for scan purpose."
+        }
+      },
+      "allowConnectIP": {
+        "type": "string",
+        "defaultValue": "10.0.0.1",
+        "metadata": {
+          "description": "The public IP for user to access."
+        }
+      },
+      "adminUsername": {
+        "type": "string",
+        "defaultValue": "aiwadmin",
+        "metadata": {
+          "description": "Username for the Virtual Machine."
+        }
+      },
+      "vmSize": {
+        "type": "string",
+        "defaultValue": "Standard_F1",
+        "metadata": {
+          "description": "VM size for the Docker host."
+        }
+      },
+      "ubuntuOSVersion": {
+        "type": "string",
+        "defaultValue": "18.04-LTS",
+        "metadata": {
+          "description": "The Ubuntu version for deploying the Docker containers. This will pick a fully patched image of this given Ubuntu version. Allowed values: 15.10, 16.04.0-LTS, 18.04-LTS"
+        },
+        "allowedValues": [
+          "14.04.5-LTS",
+          "16.04-LTS",
+          "18.04-LTS"
+        ]
+      },
+      "location": {
+        "type": "string",
+        "defaultValue": "[resourceGroup().location]",
+        "metadata": {
+          "description": "Location for all resources."
+        }
+      },
+      "authenticationType": {
+        "type": "string",
+        "defaultValue": "password",
+        "allowedValues": [
+          "sshPublicKey",
+          "password"
+        ],
+        "metadata": {
+          "description": "Type of authentication to use on the Virtual Machine. SSH key is recommended."
+        }
+      },
+      "adminPasswordOrKey": {
+        "type": "securestring",
+        "defaultValue": "AIWw@rkshop!",
+        "metadata": {
+          "description": "SSH Key or password for the Virtual Machine. SSH key is recommended."
+        }
+      }
+    },
+    "variables": {
+      "imagePublisher": "Canonical",
+      "imageOffer": "UbuntuServer",
+      "addressPrefix": "10.0.0.0/16",
+      "subnetName": "Subnet",
+      "subnetPrefix": "10.0.0.0/24",
+      "diskStorageType": "StandardSSD_LRS",
+      "publicIPAddressName": "AIWPublicIP",
+      "publicIPAddressType": "Dynamic",
+      "vmNameWindowsRansomware": "AIW-Ransomware",
+      "vmNameUbuntuDvwa": "AIW-DVWA",
+      "virtualNetworkName": "AIWVNETD",
+      "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
+      "linuxConfiguration": {
+        "disablePasswordAuthentication": true,
+        "ssh": {
+          "publicKeys": [
+            {
+              "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+              "keyData": "[parameters('adminPasswordOrKey')]"
+            }
+          ]
+        }
+      },
+      "networkSecurityGroupName": "default-NSG"
+    },
+    "resources": [
+      {
+        "type": "Microsoft.Storage/storageAccounts",
+        "apiVersion": "2018-02-01",
+        "name": "[parameters('StorageAccountName')]",
+        "location": "[resourceGroup().location]",
+        "tags": {
+          "displayName": "[parameters('StorageAccountName')]"
+        },
+        "sku": {
+          "name": "Standard_LRS"
+        },
+        "kind": "StorageV2",
+        "properties": {},
+        "resources": [
+          {
+            "type": "blobServices/containers",
+            "apiVersion": "2018-03-01-preview",
+            "name": "[concat('default/', 'democontainer')]",
+            "dependsOn": [
+              "[parameters('StorageAccountName')]"
+            ],
+            "properties": {
+              "publicAccess": "None"
+            }
+          }
+        ]
+      },
+      {
+        "apiVersion": "2020-06-01",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "name": "[concat(variables('publicIPAddressName'), 'Ransomware')]",
+        "location": "[parameters('location')]",
+        "properties": {
+          "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+        }
+      },
+      {
+        "apiVersion": "2020-06-01",
+        "type": "Microsoft.Network/publicIPAddresses",
+        "name": "[concat(variables('publicIPAddressName'), 'DVWA')]",
+        "location": "[parameters('location')]",
+        "properties": {
+          "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+        }
+      },
+      {
+        "apiVersion": "2020-08-01",
+        "type": "Microsoft.Network/publicIpAddresses",
+        "name": "[concat(variables('publicIPAddressName'), '-', resourceGroup().name, '-bastion')]",
+        "location": "[parameters('location')]",
+        "tags": {},
+        "sku": {
+            "name": "Standard"
+        },
+        "properties": {
+            "publicIPAllocationMethod": "Static"
+        }
+      },
+      {
+        "type": "Microsoft.Network/bastionHosts",
+        "apiVersion": "2021-05-01",
+        "name": "[concat('AIWVNETD', '-', resourceGroup().name, '-bastion')]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('publicIPAddressName'), '-', resourceGroup().name, '-bastion'))]"
+        ],
+        "tags": {},
+        "sku": {
+            "name": "Basic"
+        },
+        "properties": {
+            "disableCopyPaste": "false",
+            "ipConfigurations": [
+                {
+                    "name": "IpConf",
+                    "properties": {
+                        "subnet": {
+                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), 'AzureBastionSubnet')]"
+                        },
+                        "publicIPAddress": {
+                            "id": "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('publicIPAddressName'), '-', resourceGroup().name, '-bastion'))]"
+                        }
+                    }
+                }
+            ],
+            "scaleUnits": "2"
+        }
+      },
+      {
+        "comments": "Default Network Security Group for template",
+        "type": "Microsoft.Network/networkSecurityGroups",
+        "apiVersion": "2020-06-01",
+        "name": "[variables('networkSecurityGroupName')]",
+        "location": "[parameters('location')]",
+        "properties": {
+          "securityRules": [
+            {
+              "name": "default-allow-22",
+              "properties": {
+                "priority": 1000,
+                "access": "Allow",
+                "direction": "Inbound",
+                "destinationPortRange": "22",
+                "protocol": "Tcp",
+                "sourceAddressPrefix": "[parameters('allowConnectIP')]",
+                "sourcePortRange": "*",
+                "destinationAddressPrefix": "*"
+              }
+            },
+            {
+              "name": "default-allow-80",
+              "properties": {
+                "priority": 1001,
+                "access": "Allow",
+                "direction": "Inbound",
+                "destinationPortRange": "80",
+                "protocol": "Tcp",
+                "sourceAddressPrefix": "[parameters('allowConnectIP')]",
+                "sourcePortRange": "*",
+                "destinationAddressPrefix": "*"
+              }
+            },
+            {
+              "name": "default-allow-3389",
+              "properties": {
+                "priority": 1002,
+                "access": "Allow",
+                "direction": "Inbound",
+                "destinationPortRange": "3389",
+                "protocol": "Tcp",
+                "sourceAddressPrefix": "[parameters('allowConnectIP')]",
+                "sourcePortRange": "*",
+                "destinationAddressPrefix": "*"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "apiVersion": "2020-06-01",
+        "type": "Microsoft.Network/virtualNetworks",
+        "name": "[variables('virtualNetworkName')]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+        ],
+        "properties": {
+          "addressSpace": {
+            "addressPrefixes": [
+              "[variables('addressPrefix')]"
+            ]
+          },
+          "subnets": [
+            {
+              "name": "[variables('subnetName')]",
+              "properties": {
+                "addressPrefix": "[variables('subnetPrefix')]",
+                "networkSecurityGroup": {
+                  "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                }
+              }
+            },
+            {
+              "name": "AzureBastionSubnet",
+              "properties": {
+                "addressPrefix": "10.0.1.0/26"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "apiVersion": "2020-06-01",
+        "type": "Microsoft.Network/networkInterfaces",
+        "name": "[concat(variables('vmNameWindowsRansomware'),'NIC')]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('publicIPAddressName'), 'Ransomware'))]",
+          "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
+        ],
+        "properties": {
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "privateIPAllocationMethod": "Dynamic",
+                "publicIPAddress": {
+                  "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIPAddressName'), 'Ransomware'))]"
+                },
+                "subnet": {
+                  "id": "[variables('subnetRef')]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "apiVersion": "2020-06-01",
+        "type": "Microsoft.Network/networkInterfaces",
+        "name": "[concat(variables('vmNameUbuntuDvwa'), 'NIC')]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('publicIPAddressName'), 'DVWA'))]",
+          "[resourceId('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
+        ],
+        "properties": {
+          "ipConfigurations": [
+            {
+              "name": "ipconfig1",
+              "properties": {
+                "privateIPAllocationMethod": "Dynamic",
+                "publicIPAddress": {
+                  "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('publicIPAddressName'), 'DVWA'))]"
+                },
+                "subnet": {
+                  "id": "[variables('subnetRef')]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "Microsoft.Compute/virtualMachines",
+        "apiVersion": "2021-07-01",
+        "name": "[variables('vmNameWindowsRansomware')]",
+        "location": "[parameters('location')]",
+        "properties": {
+          "hardwareProfile": {
+            "vmSize": "[parameters('vmSize')]"
+          },
+          "osProfile": {
+            "computerName": "[variables('vmNameWindowsRansomware')]",
+            "adminUsername": "[parameters('adminUsername')]",
+            "adminPassword": "[parameters('adminPasswordOrKey')]"
+          },
+          "storageProfile": {
+            "imageReference": {
+              "publisher": "MicrosoftVisualStudio",
+              "offer": "visualstudio2019latest",
+              "sku": "vs-2019-comm-latest-ws2019",
+              "version": "latest"
+            },
+            "osDisk": {
+              "name": "[format('{0}_OSDisk', variables('vmNameWindowsRansomware'))]",
+              "caching": "ReadWrite",
+              "createOption": "FromImage"
+            }
+          },
+          "networkProfile": {
+            "networkInterfaces": [
+              {
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('vmNameWindowsRansomware'),'NIC'))]"
+              }
+            ]
+          }
+        },
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('vmNameWindowsRansomware'),'NIC'))]"
+        ]
+      },
+      {
+        "type": "Microsoft.Compute/virtualMachines/extensions",
+        "name": "[concat(variables('vmNameWindowsRansomware'),'/ransomware_script')]",
+        "apiVersion": "2020-12-01",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Compute/virtualMachines/', variables('vmNameWindowsRansomware'))]"
+        ],
+        "properties": {
+          "publisher": "Microsoft.Compute",
+          "type": "CustomScriptExtension",
+          "typeHandlerVersion": "1.10",
+          "autoUpgradeMinorVersion": true,
+          "settings": {
+              "timestamp":123456789
+          },
+          "protectedSettings": {
+              "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ransomware_get_repo.ps1",
+              "fileUris": [
+                  "https://aiwcustomscripts.blob.core.windows.net/ransomware/ransomware_get_repo.ps1"
+              ],
+              "managedIdentity" : {}
+          }
+        }
+      },
+      {
+        "apiVersion": "2019-12-01",
+        "type": "Microsoft.Compute/virtualMachines",
+        "name": "[variables('vmNameUbuntuDvwa')]",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/networkInterfaces/', concat(variables('vmNameUbuntuDvwa'), 'NIC'))]"
+        ],
+        "properties": {
+          "hardwareProfile": {
+            "vmSize": "Standard_B2s"
+          },
+          "osProfile": {
+            "computerName": "[variables('vmNameUbuntuDvwa')]",
+            "adminUsername": "[parameters('adminUsername')]",
+            "adminPassword": "[parameters('adminPasswordOrKey')]",
+            "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+          },
+          "storageProfile": {
+            "imageReference": {
+              "publisher": "[variables('imagePublisher')]",
+              "offer": "[variables('imageOffer')]",
+              "sku": "[parameters('ubuntuOSVersion')]",
+              "version": "latest"
+            },
+            "osDisk": {
+              "name": "[concat(variables('vmNameUbuntuDvwa'),'_OSDisk')]",
+              "caching": "ReadWrite",
+              "createOption": "FromImage",
+              "managedDisk": {
+                "storageAccountType": "[variables('diskStorageType')]"
+              }
+            }
+          },
+          "networkProfile": {
+            "networkInterfaces": [
+              {
+                "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('vmNameUbuntuDvwa'), 'NIC'))]"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "Microsoft.Compute/virtualMachines/extensions",
+        "name": "[concat(variables('vmNameUbuntuDvwa'),'/dvwa_script')]",
+        "apiVersion": "2020-12-01",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Compute/virtualMachines/', variables('vmNameUbuntuDvwa'))]"
+        ],
+        "properties": {
+          "publisher": "Microsoft.Azure.Extensions",
+          "type": "CustomScript",
+          "typeHandlerVersion": "2.0",
+          "autoUpgradeMinorVersion": true,
+          "settings": {
+            "commandToExecute": "bash dvwa_deployment.sh",
+            "fileUris": [
+                "https://aiwcustomscripts.blob.core.windows.net/dvwa-sql-injection/dvwa_deployment.sh"
+            ]
+          }
+        }
+      }
+    ]
+  }
