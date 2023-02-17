@@ -2,7 +2,7 @@
 
 ### Azure-Immersion-Workshop Resource Architecture
 
-![image](https://adc.github.trendmicro.com/GIS-HCT/Azure-Immersion-Workshop/blob/main/readme/Azure-Immersion-Workshop%20Resource%20Architecture.png)
+![image](https://github.com/trendmicro/Azure-Immersion-Day/blob/main/readme/Azure-Immersion-Workshop%20Resource%20Architecture.png)
 
 ### Deploy the environment by Azure Resource Management (ARM)
 1. Please install Azure CLI by the website
