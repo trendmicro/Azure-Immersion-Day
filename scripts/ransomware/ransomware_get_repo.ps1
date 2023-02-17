@@ -14,4 +14,4 @@ $Env:GIT_REDIRECT_STDERR = '2>&1'
 cd\
 cd C:\Users\aiwadmin\Desktop
 git clone https://github.com/NextronSystems/ransomware-simulator.git
-Invoke-WebRequest -Uri https://aiwcustomscripts.blob.core.windows.net/ransomware/quickbuck.exe -OutFile .\quickbuck.exe -UseBasicParsing
+Invoke-WebRequest -Uri https://github.com/trendmicro/Azure-Immersion-Day/blob/main/scripts/ransomware/quickbuck.exe -OutFile .\quickbuck.exe -UseBasicParsing
