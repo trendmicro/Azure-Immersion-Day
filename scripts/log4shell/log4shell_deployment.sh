@@ -13,7 +13,7 @@ sudo service docker start
 sudo apt install -y openjdk-11-jdk
 cd home/aiwadmin
 git clone https://github.com/christophetd/log4shell-vulnerable-app.git
-wget https://github.com/trendmicro/Azure-Immersion-Day/blob/main/scripts/log4shell/JNDIExploit.v1.2.zip
+wget https://raw.githubusercontent.com/trendmicro/Azure-Immersion-Day/main/scripts/log4shell/JNDIExploit.v1.2.zip
 cd log4shell-vulnerable-app
 sudo docker build . -t vulnerable-app
 docker run --rm -it -d -p 8080:8080 --name vulnerable-app vulnerable-app
