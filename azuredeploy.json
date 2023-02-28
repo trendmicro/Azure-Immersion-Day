@@ -376,7 +376,7 @@
           "protectedSettings": {
               "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File ransomware_get_repo.ps1",
               "fileUris": [
-                  "https://github.com/trendmicro/Azure-Immersion-Day/blob/main/scripts/ransomware/ransomware_get_repo.ps1"
+                  "https://raw.githubusercontent.com/trendmicro/Azure-Immersion-Day/main/scripts/ransomware/ransomware_get_repo.ps1"
               ],
               "managedIdentity" : {}
           }
@@ -441,7 +441,7 @@
           "settings": {
             "commandToExecute": "bash dvwa_deployment.sh",
             "fileUris": [
-                "https://github.com/trendmicro/Azure-Immersion-Day/blob/main/scripts/sqlinjection/dvwa_deployment.sh"
+                "https://raw.githubusercontent.com/trendmicro/Azure-Immersion-Day/main/scripts/sqlinjection/dvwa_deployment.sh"
             ]
           }
         }
