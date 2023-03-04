@@ -5,4 +5,4 @@ Set-ItemProperty -Path $AdminKey -Name "IsInstalled" -Value 0
 Set-ItemProperty -Path $UserKey -Name "IsInstalled" -Value 0
 cd\
 cd C:\Users\aiwadmin\Desktop
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/trendmicro/Azure-Immersion-Day/main/scripts/randomwear/randompackage.exe -OutFile .\randompackage.exe -UseBasicParsing
+Invoke-WebRequest -Uri https://github.com/trendmicro/Azure-Immersion-Day/raw/main/scripts/randomwear/randompackage.exe -OutFile .\randompackage.exe -UseBasicParsing
