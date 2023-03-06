@@ -25,7 +25,7 @@ az deployment group create --name AzureImmersionWorkshop --resource-group AzureI
 ```commandline
 az group delete --name AzureImmersionWorkshop
 ```
-### Deploy environment automatically for Windows
+### Deploy environments automatically for Windows
 You can deploy, delete any number of environments trough a windows Batch script. New features will be added in the future.
 0. Make sure you are logged in Azure Portal.
 1. Open Windows CMD inside of the folder where Automate.bat is located.
