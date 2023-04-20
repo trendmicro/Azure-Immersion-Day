@@ -13,4 +13,3 @@ $Env:Path += ';C:\ProgramData\chocolatey\bin\'
 $Env:GIT_REDIRECT_STDERR = '2>&1'
 cd\
 cd C:\Users\aiwadmin\Desktop
-git clone https://github.com/NextronSystems/ransomware-simulator.git
